@@ -2,31 +2,50 @@ import cv2
 import numpy as np
 import time
 
-def capture_video():
-    cap = cv2.VideoCapture(0)  # 0 for the default camera
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        cv2.imshow("Video Feed", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    cap.release()
-    cv2.destroyAllWindows()
-
-
 # Constants
 WAVE_THRESHOLD = 30  # Number of frames for a wave
 WAVE_DETECTION_RADIUS = 50  # Distance to consider a movement as a wave
 
+# Initialize traffic light state
+traffic_light_color = "red"
+
 
 def is_wave(movement):
-    # Check if the movement pattern indicates a wave
-    if len(movement) < WAVE_THRESHOLD:
-        return False
-    return True
+    """
+    Check if the movement pattern indicates a wave.
+    """
+    return len(movement) >= WAVE_THRESHOLD
+
+
+def display_traffic_light(color):
+    """
+    Display the traffic light with the given color.
+    """
+    light = np.zeros((300, 100, 3), dtype="uint8")
+    color_dict = {"red": (0, 0, 255), "green": (0, 255, 0)}
+    if color in color_dict:
+        cv2.circle(light, (50, 150 if color == "green" else 50), 30, color_dict[color], -1)
+    cv2.imshow("Traffic Light", light)
+
+
+def trigger_traffic_light():
+    """
+    Trigger the traffic light to turn green and then back to red.
+    """
+    global traffic_light_color
+    traffic_light_color = "green"
+    display_traffic_light(traffic_light_color)
+    print("Traffic light turned green!")
+    time.sleep(5)  # Simulate the green light duration
+    traffic_light_color = "red"
+    display_traffic_light(traffic_light_color)
+    print("Traffic light turned red!")
+
 
 def detect_handwave():
+    """
+    Detect handwave using the webcam and trigger the traffic light.
+    """
     cap = cv2.VideoCapture(0)
     movement = []
 
@@ -35,39 +54,26 @@ def detect_handwave():
         if not ret:
             break
 
-        # Convert to grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # Apply Gaussian blur
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
-        # Threshold to get the binary image
         ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-        # Find contours
-        contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         if contours:
-            # Get the largest contour which should be the hand
             cnt = max(contours, key=cv2.contourArea)
-            # Get the bounding box of the hand
             x, y, w, h = cv2.boundingRect(cnt)
-            # Get the center of the hand
             cx, cy = x + w // 2, y + h // 2
-
-            # Record the movement
             movement.append((cx, cy))
-
             if len(movement) > WAVE_THRESHOLD:
                 movement.pop(0)
-
-                # Check if the recorded movement indicates a wave
                 if is_wave(movement):
                     print("Handwave detected! Triggering pedestrian crossing signal...")
+                    trigger_traffic_light()
                     movement = []
-                    time.sleep(5)  # Simulate the signal duration
 
-        # Display the result
         cv2.imshow("Frame", frame)
         cv2.imshow("Thresh", thresh)
+        display_traffic_light(traffic_light_color)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -75,7 +81,8 @@ def detect_handwave():
     cap.release()
     cv2.destroyAllWindows()
 
-detect_handwave()
 
+if __name__ == "__main__":
+    detect_handwave()
 
 
