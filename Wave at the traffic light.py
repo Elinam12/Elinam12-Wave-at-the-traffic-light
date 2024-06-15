@@ -2,19 +2,21 @@ import cv2
 import numpy as np
 import time
 
-# Constants
-WAVE_THRESHOLD = 30  # Number of frames for a wave
-WAVE_DETECTION_RADIUS = 50  # Distance to consider a movement as a wave
+# Number of waves
+WAVE_ NUMBER = 30  
+
+# Distance to consider a movement as a wave
+WAVE_DETECTION_RANGE = 50  
 
 # Initialize traffic light state
 traffic_light_color = "red"
 
 
-def is_wave(movement):
+def is_this_a_wave(movement):
     """
     Check if the movement pattern indicates a wave.
     """
-    return len(movement) >= WAVE_THRESHOLD
+    return len(movement) >= WAVE_NUMBER
 
 
 def display_traffic_light(color):
@@ -32,9 +34,8 @@ def trigger_traffic_light():
     """
     Trigger the traffic light to turn green and then back to red.
     """
-    global traffic_light_color
     traffic_light_color = "green"
-    display_traffic_light(traffic_light_color)
+    show_traffic_light(traffic_light_color)
     print("Traffic light turned green!")
     time.sleep(5)  # Simulate the green light duration
     traffic_light_color = "red"
